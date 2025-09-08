@@ -5,6 +5,9 @@ Built with **Python + FastAPI**, with plans for a simple web UI and CLI support.
 
 ---
 
+![Project Structure](docs/screenshot-portfolio.jpg)
+
+
 ## ✨ Features (MVP)
 
 - Track holdings across **crypto, metals, and equities**
