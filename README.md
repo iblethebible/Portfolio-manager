@@ -62,3 +62,14 @@ Clone the repo:
 ```bash
 git clone https://github.com/iblethebible/portfolio-manager.git
 cd portfolio-manager
+
+
+## 🧩 Project Structure
+
+The app is compartmentalised into layers:
+
+```mermaid
+flowchart TD
+    A[Frontend (UI)\nReact/Svelte (WIP)] <--> B[FastAPI API\n/overview etc.]
+    B --> C[Core Logic\nPrice fetchers\nP&L calculations]
+    C --> D[Database\nSQLite / MySQL]
