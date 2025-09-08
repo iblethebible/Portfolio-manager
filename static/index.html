@@ -3,304 +3,354 @@
 <head>
   <meta charset="utf-8" />
   <title>Open Portfolio Manager</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    header { margin-bottom: 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .row { display:flex; gap:24px; flex-wrap:wrap; }
-    .card { border:1px solid #e5e7eb; border-radius:12px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.04); flex:1; min-width:320px; }
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:8px 10px; border-bottom:1px solid #eee; text-align:left; }
-    .right { text-align:right; }
-    .muted { color:#6b7280; }
-    footer { margin-top:24px; color:#6b7280; font-size:12px; }
-    button, select, input { padding:8px 10px; border-radius:8px; border:1px solid #ddd; background:#fff; }
-    button { cursor:pointer; }
-    h3 { margin-top:0; }
-    form { display:grid; grid-template-columns: repeat(6, minmax(100px, 1fr)); gap:8px; align-items:end; }
-    form .wide { grid-column: span 2; }
-    form .full { grid-column: 1 / -1; }
-    .danger { color:#b91c1c; cursor:pointer; }
-    .pill { padding:2px 8px; border-radius:999px; border:1px solid #e5e7eb; font-size:12px; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .col { flex: 1 1 320px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align: left; }
+    h1 { margin-top: 0; }
+    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; background: #fafafa; }
+    input, select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; width: 100%; }
+    .error { color: #b00020; }
+    .muted { color: #666; font-size: 0.95em; }
+    .right { text-align: right; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .hidden { display: none; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Chart.js for the pie chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <header>
-    <h1 style="margin:0">Open Portfolio Manager</h1>
-    <span class="muted" id="baseCcy"></span>
-    <select id="ccySelect">
-      <option>GBP</option>
-      <option>USD</option>
-      <option>EUR</option>
-    </select>
-    <button id="refreshBtn">Refresh</button>
-  </header>
+  <div class="topbar">
+    <h1>Open Portfolio Manager</h1>
+    <div id="userBox" class="muted"></div>
+  </div>
 
-  <div class="row">
-    <div class="card">
-      <h3>Total Value</h3>
-      <div id="total" style="font-size:28px;font-weight:700">—</div>
-      <div class="muted" id="asOf"></div>
-    </div>
-    <div class="card">
-      <h3>Allocation</h3>
-      <canvas id="pie"></canvas>
+  <!-- LOGIN CARD -->
+  <div id="loginCard" class="card hidden" style="max-width:420px;">
+    <h3>Sign in</h3>
+    <div style="display:grid; gap:10px;">
+      <label>Username
+        <input id="username" placeholder="demo" />
+      </label>
+      <label>Password
+        <input id="password" type="password" placeholder="demo123" />
+      </label>
+      <div style="display:flex; gap:8px;">
+        <button id="loginBtn">Login</button>
+        <button id="registerBtn">Register</button>
+      </div>
+      <div id="loginErr" class="error"></div>
+      <p class="muted">Tip: pre-seeded <code>demo / demo123</code></p>
     </div>
   </div>
 
-  <div class="row" style="margin-top:24px">
-    <div class="card">
-      <h3>Add Asset</h3>
-      <form id="assetForm">
-        <div>
-          <label>Symbol</label><br/>
-          <input id="a_symbol" placeholder="BTC / VOD.L / XAG" required />
+  <!-- DASHBOARD -->
+  <div id="dashWrap" class="hidden">
+    <div class="row">
+      <div class="col">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Overview</h3>
+            <div>
+              <label class="muted">Base CCY
+                <select id="baseCcy">
+                  <option>GBP</option>
+                  <option>USD</option>
+                  <option>EUR</option>
+                </select>
+              </label>
+              <button id="refreshBtn">Refresh</button>
+              <button id="logoutBtn">Logout</button>
+            </div>
+          </div>
+          <div id="totals" class="muted">Loading…</div>
+          <table>
+            <thead>
+              <tr><th>Symbol</th><th>Type</th><th class="right">Qty</th><th class="right">Price</th><th class="right">Value</th></tr>
+            </thead>
+            <tbody id="positionsBody"></tbody>
+          </table>
+          <div id="overviewErr" class="error"></div>
         </div>
-        <div>
-          <label>Type</label><br/>
-          <select id="a_type">
-            <option value="crypto">crypto</option>
-            <option value="equity">equity</option>
-            <option value="metal">metal</option>
-            <option value="manual">manual</option>
-          </select>
-        </div>
-        <div>
-          <label>Source</label><br/>
-          <select id="a_source">
-            <option value="coingecko">coingecko</option>
-            <option value="yfinance">yfinance</option>
-            <option value="manual">manual</option>
-          </select>
-        </div>
-        <div class="wide">
-          <label>Source Ref</label><br/>
-          <input id="a_source_ref" placeholder="ethereum / AAPL / XAGUSD=X" />
-        </div>
-        <div>
-          <label>Native CCY (optional)</label><br/>
-          <input id="a_native_ccy" placeholder="USD / GBP / GBX" />
-        </div>
-        <div>
-          <button type="submit">Add Asset</button>
-        </div>
-      </form>
 
-      <div style="margin-top:12px">
-        <strong>Tips:</strong>
-        <span class="pill">Crypto (CoinGecko): <code>source=coingecko</code>, <code>source_ref=ethereum</code></span>
-        <span class="pill">Equity (Yahoo): <code>source=yfinance</code>, <code>source_ref=VOD.L</code>, <code>native_ccy=GBX</code></span>
-        <span class="pill">Silver: <code>type=metal</code>, <code>source=yfinance</code>, <code>source_ref=XAGUSD=X</code></span>
+        <!-- Allocation Pie -->
+        <div class="card">
+          <h3>Allocation</h3>
+          <canvas id="allocPie" height="240"></canvas>
+          <div id="pieHint" class="muted"></div>
+        </div>
       </div>
 
-      <h3 style="margin-top:20px">Assets</h3>
-      <table id="assetsTbl">
-        <thead>
-          <tr><th>Symbol</th><th>Type</th><th>Source</th><th>Ref</th><th>Native</th><th></th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="col">
+        <div class="card">
+          <h3>Add Asset</h3>
+          <div style="display:grid; gap:8px;">
+            <label>Symbol <input id="assetSymbol" placeholder="e.g. XMR or NVDA or VOD.L" /></label>
+            <label>Type
+              <select id="assetType">
+                <option value="crypto">crypto</option>
+                <option value="equity">equity</option>
+                <option value="metal">metal</option>
+                <option value="manual">manual</option>
+              </select>
+            </label>
+            <label>Source
+              <select id="assetSource">
+                <option value="coingecko">coingecko</option>
+                <option value="yfinance">yfinance</option>
+                <option value="manual">manual</option>
+              </select>
+            </label>
+            <label>Source Ref <input id="assetRef" placeholder="coingecko id (monero) or Yahoo ticker (NVDA / XAGUSD=X)" /></label>
+            <label>Native CCY (optional) <input id="assetNccy" placeholder="USD / GBX / etc" /></label>
+            <button id="addAssetBtn">Add Asset</button>
+            <div id="assetErr" class="error"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Add Holding</h3>
+          <div style="display:grid; gap:8px;">
+            <label>Asset Symbol <input id="holdSymbol" placeholder="e.g. XMR" /></label>
+            <label>Quantity <input id="holdQty" type="number" step="any" placeholder="e.g. 2.5" /></label>
+            <label>Account <input id="holdAcct" placeholder="Default" value="Default" /></label>
+            <button id="addHoldBtn">Add Holding</button>
+            <div id="holdErr" class="error"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
-      <h3>Add Holding</h3>
-      <form id="holdingForm">
-        <div>
-          <label>Asset Symbol</label><br/>
-          <input id="h_symbol" placeholder="BTC / VOD.L / XAG" required />
-        </div>
-        <div>
-          <label>Quantity</label><br/>
-          <input id="h_qty" type="number" step="any" placeholder="e.g. 0.25" required />
-        </div>
-        <div>
-          <label>Account</label><br/>
-          <input id="h_account" placeholder="Default" />
-        </div>
-        <div>
-          <button type="submit">Add Holding</button>
-        </div>
-      </form>
-
-      <h3 style="margin-top:20px">Holdings</h3>
-      <table id="holdingsTbl">
+      <h3>Your Holdings</h3>
+      <table>
         <thead>
-          <tr><th>ID</th><th>Account</th><th>Asset ID</th><th>Qty</th><th></th></tr>
+          <tr><th>ID</th><th>Account</th><th>Symbol</th><th>Type</th><th class="right">Qty</th><th></th></tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="holdsBody"></tbody>
       </table>
+      <div id="holdsErr" class="error"></div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:24px">
-    <h3>Positions</h3>
-    <table id="tbl">
-      <thead>
-        <tr><th>Symbol</th><th>Type</th><th class="right">Qty</th><th class="right">Last px</th><th class="right">Value</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const setHidden = (el, hidden) => el.classList.toggle('hidden', !!hidden);
+    const fmt = n => new Intl.NumberFormat().format(n);
 
-  <footer>
-    API: <code>/api/overview?base_ccy=GBP|USD|EUR</code>
-  </footer>
+    let pieChart = null; // Chart.js instance
 
-<script>
-const fmt = (n, ccy) => new Intl.NumberFormat(undefined, { style:'currency', currency: ccy }).format(n);
+    async function api(path, opts={}) {
+      const res = await fetch(path, { credentials: "include", ...opts });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch {}
+      if (!res.ok) {
+        const err = (data && (data.detail || data.error)) || `HTTP ${res.status}`;
+        throw new Error(err);
+      }
+      return data;
+    }
 
-let pieChart;
+    async function checkAuth() {
+      try {
+        const me = await api("/api/me");
+        $("#userBox").textContent = `Signed in as ${me.display_name} (@${me.username})`;
+        setHidden($("#loginCard"), true);
+        setHidden($("#dashWrap"), false);
+        await refreshAll();
+      } catch {
+        $("#userBox").textContent = "";
+        setHidden($("#dashWrap"), true);
+        setHidden($("#loginCard"), false);
+      }
+    }
 
-async function loadOverview(base='GBP') {
-  document.getElementById('baseCcy').textContent = `(Base: ${base})`;
-  const res = await fetch(`/api/overview?base_ccy=${encodeURIComponent(base)}`);
-  if (!res.ok) { alert('API error'); return; }
-  const data = await res.json();
+    function renderPie(overview) {
+      const ctx = $("#allocPie").getContext("2d");
+      const labels = overview.items.map(r => r.symbol);
+      const data = overview.items.map(r => r.value);
 
-  // Total
-  document.getElementById('total').textContent = fmt(data.total || 0, data.base_ccy);
-  document.getElementById('asOf').textContent = new Date().toLocaleString();
+      // Destroy previous chart to avoid leaks
+      if (pieChart) { pieChart.destroy(); pieChart = null; }
 
-  // Table
-  const tbody = document.querySelector('#tbl tbody');
-  tbody.innerHTML = '';
-  (data.items || []).forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.symbol}</td>
-      <td>${r.type}</td>
-      <td class="right">${r.qty}</td>
-      <td class="right">${fmt(r.last_px, data.base_ccy)}</td>
-      <td class="right">${fmt(r.value, data.base_ccy)}</td>`;
-    tbody.appendChild(tr);
-  });
+      if (!data.length) {
+        $("#pieHint").textContent = "No valued positions yet. Add holdings or refresh.";
+        return;
+      }
 
-  // Allocation pie
-  const labels = (data.items || []).map(r => r.symbol);
-  const values = (data.items || []).map(r => r.value);
-  const ctx = document.getElementById('pie');
-  if (pieChart) pieChart.destroy();
-  pieChart = new Chart(ctx, {
-    type: 'pie',
-    data: { labels, datasets: [{ data: values }] },
-    options: { plugins: { legend: { position:'bottom' } } }
-  });
-}
+      $("#pieHint").textContent = "";
+      pieChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels,
+          datasets: [{
+            data,
+            // default Chart.js colors; we intentionally don't hardcode colors
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.raw || 0;
+                  const total = data.reduce((a,b)=>a+b,0) || 1;
+                  const pct = (val / total) * 100;
+                  return `${ctx.label}: ${fmt(val)} (${pct.toFixed(1)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
 
-async function loadAssets() {
-  const res = await fetch('/api/assets');
-  const rows = await res.json();
-  const tbody = document.querySelector('#assetsTbl tbody');
-  tbody.innerHTML = '';
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.symbol}</td>
-      <td>${r.type}</td>
-      <td>${r.source}</td>
-      <td>${r.source_ref ?? ''}</td>
-      <td>${r.native_ccy ?? ''}</td>
-      <td><span class="danger" data-del-asset="${r.symbol}">delete</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+    async function refreshAll() {
+      $("#overviewErr").textContent = "";
+      $("#holdsErr").textContent = "";
+      const base = $("#baseCcy").value || "GBP";
+      try {
+        const ov = await api(`/api/overview?base_ccy=${encodeURIComponent(base)}`);
+        $("#totals").textContent = `Base: ${ov.base_ccy} — Total: ${fmt(ov.total)}`;
+        const tb = $("#positionsBody");
+        tb.innerHTML = "";
+        ov.items.forEach(r => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${r.symbol}</td>
+            <td>${r.type}</td>
+            <td class="right">${fmt(r.qty)}</td>
+            <td class="right">${fmt(r.last_px)}</td>
+            <td class="right">${fmt(r.value)}</td>
+          `;
+          tb.appendChild(tr);
+        });
+        renderPie(ov);
+      } catch (e) {
+        $("#overviewErr").textContent = e.message || "API error";
+        renderPie({ items: [] }); // clear pie
+      }
 
-async function loadHoldings() {
-  const res = await fetch('/api/holdings');
-  const rows = await res.json();
-  const tbody = document.querySelector('#holdingsTbl tbody');
-  tbody.innerHTML = '';
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.id}</td>
-      <td>${r.account}</td>
-      <td>${r.asset_id}</td>
-      <td>${r.qty}</td>
-      <td><span class="danger" data-del-holding="${r.id}">delete</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
+      try {
+        const holds = await api("/api/holdings");
+        const hb = $("#holdsBody");
+        hb.innerHTML = "";
+        holds.forEach(h => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${h.id}</td>
+            <td>${h.account}</td>
+            <td>${h.asset_symbol}</td>
+            <td>${h.asset_type}</td>
+            <td class="right">${fmt(h.qty)}</td>
+            <td><button data-id="${h.id}" class="delBtn">Delete</button></td>
+          `;
+          hb.appendChild(tr);
+        });
+        hb.querySelectorAll(".delBtn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            try {
+              await api(`/api/holdings/${id}`, { method: "DELETE" });
+              await refreshAll();
+            } catch (e) { alert(e.message); }
+          });
+        });
+      } catch (e) {
+        $("#holdsErr").textContent = e.message || "API error";
+      }
+    }
 
-document.getElementById('refreshBtn').onclick = () => {
-  const base = document.getElementById('ccySelect').value;
-  loadOverview(base);
-  loadAssets();
-  loadHoldings();
-};
+    // events
+    $("#baseCcy").addEventListener("change", refreshAll);
 
-document.getElementById('ccySelect').onchange = () => {
-  const base = document.getElementById('ccySelect').value;
-  loadOverview(base);
-};
+    $("#loginBtn").addEventListener("click", async () => {
+      $("#loginErr").textContent = "";
+      const body = {
+        username: $("#username").value.trim(),
+        password: $("#password").value
+      };
+      try {
+        await api("/api/auth/login", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(body)
+        });
+        await checkAuth();
+      } catch (e) { $("#loginErr").textContent = e.message; }
+    });
 
-// Add Asset
-document.getElementById('assetForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const payload = {
-    symbol: document.getElementById('a_symbol').value.trim(),
-    type: document.getElementById('a_type').value,
-    source: document.getElementById('a_source').value,
-    source_ref: document.getElementById('a_source_ref').value.trim(),
-    native_ccy: document.getElementById('a_native_ccy').value.trim() || null,
-  };
-  const res = await fetch('/api/assets', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) return alert('Failed to add asset');
-  await loadAssets();
-});
+    $("#registerBtn").addEventListener("click", async () => {
+      $("#loginErr").textContent = "";
+      const body = {
+        username: $("#username").value.trim(),
+        password: $("#password").value,
+        display_name: $("#username").value.trim() || "User"
+      };
+      try {
+        await api("/api/auth/register", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(body)
+        });
+        await checkAuth();
+      } catch (e) { $("#loginErr").textContent = e.message; }
+    });
 
-// Add Holding
-document.getElementById('holdingForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const payload = {
-    asset_symbol: document.getElementById('h_symbol').value.trim(),
-    qty: parseFloat(document.getElementById('h_qty').value),
-    account: document.getElementById('h_account').value.trim() || 'Default',
-  };
-  const res = await fetch('/api/holdings', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) return alert('Failed to add holding');
-  await loadHoldings();
-  // Also refresh overview
-  const base = document.getElementById('ccySelect').value;
-  loadOverview(base);
-});
+    $("#refreshBtn").addEventListener("click", refreshAll);
 
-// Delegated delete clicks
-document.body.addEventListener('click', async (e) => {
-  const a = e.target.getAttribute('data-del-asset');
-  if (a) {
-    if (!confirm(`Delete asset '${a}' (and its holdings)?`)) return;
-    const res = await fetch(`/api/assets/${encodeURIComponent(a)}`, { method: 'DELETE' });
-    if (!res.ok) return alert('Delete failed');
-    await loadAssets();
-    await loadHoldings();
-    const base = document.getElementById('ccySelect').value;
-    loadOverview(base);
-  }
-  const h = e.target.getAttribute('data-del-holding');
-  if (h) {
-    if (!confirm(`Delete holding id ${h}?`)) return;
-    const res = await fetch(`/api/holdings/${encodeURIComponent(h)}`, { method: 'DELETE' });
-    if (!res.ok) return alert('Delete failed');
-    await loadHoldings();
-    const base = document.getElementById('ccySelect').value;
-    loadOverview(base);
-  }
-});
+    $("#logoutBtn").addEventListener("click", async () => {
+      try { await api("/api/auth/logout", { method: "POST" }); } catch {}
+      await checkAuth();
+    });
 
-// initial
-loadOverview('GBP');
-loadAssets();
-loadHoldings();
-</script>
+    $("#addAssetBtn").addEventListener("click", async () => {
+      $("#assetErr").textContent = "";
+      const body = {
+        symbol: $("#assetSymbol").value,
+        type: $("#assetType").value,
+        source: $("#assetSource").value,
+        source_ref: $("#assetRef").value,
+        native_ccy: $("#assetNccy").value || null
+      };
+      try {
+        const r = await api("/api/assets", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          credentials: "include",
+          body: JSON.stringify(body)
+        });
+        alert(`Asset added: ${r.symbol}`);
+      } catch (e) { $("#assetErr").textContent = e.message; }
+    });
+
+    $("#addHoldBtn").addEventListener("click", async () => {
+      $("#holdErr").textContent = "";
+      const body = {
+        asset_symbol: $("#holdSymbol").value,
+        qty: parseFloat($("#holdQty").value),
+        account: $("#holdAcct").value || "Default"
+      };
+      try {
+        await api("/api/holdings", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          credentials: "include",
+          body: JSON.stringify(body)
+        });
+        await refreshAll();
+      } catch (e) { $("#holdErr").textContent = e.message; }
+    });
+
+    // boot
+    checkAuth();
+  </script>
 </body>
 </html>
