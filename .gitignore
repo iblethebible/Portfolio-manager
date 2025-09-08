@@ -4,19 +4,16 @@ __pycache__/
 *.pyo
 *.pyd
 *.so
-*.egg
 *.egg-info/
-*.sqlite3
-*.db
 
-# Virtual envs
-venv/
-ENV/
+# Envs & secrets
+.env
 .venv/
+venv/
+
+# Local data
+portfolio.db
+mysql-data/
 
 # VS Code
 .vscode/
-
-# OS
-.DS_Store
-Thumbs.db

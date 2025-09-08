@@ -55,3 +55,9 @@ Clone the repo:
 ```bash
 git clone https://github.com/iblethebible/portfolio-manager.git
 cd portfolio-manager
+
+
+## Setup
+1. Copy `.env.example` to `.env`
+2. Update values if needed (DB password, currency, poll interval)
+3. Run `uvicorn app.main:app --reload`
