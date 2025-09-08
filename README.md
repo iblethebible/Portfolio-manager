@@ -61,3 +61,11 @@ cd portfolio-manager
 1. Copy `.env.example` to `.env`
 2. Update values if needed (DB password, currency, poll interval)
 3. Run `uvicorn app.main:app --reload`
+
+
+## Project Board & Logs
+
+- **Known Errors Log:** see [`KEL.md`](./KEL.md)
+- **Backlog / Roadmap:** see [`BACKLOG.md`](./BACKLOG.md)
+
+> Tip: We mirror KEL items as GitHub Issues so they’re visible on the repo and can be tracked in a Project board.

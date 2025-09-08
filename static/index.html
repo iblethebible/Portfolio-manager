@@ -14,8 +14,14 @@
     .right { text-align:right; }
     .muted { color:#6b7280; }
     footer { margin-top:24px; color:#6b7280; font-size:12px; }
-    button, select { padding:8px 10px; border-radius:8px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+    button, select, input { padding:8px 10px; border-radius:8px; border:1px solid #ddd; background:#fff; }
+    button { cursor:pointer; }
     h3 { margin-top:0; }
+    form { display:grid; grid-template-columns: repeat(6, minmax(100px, 1fr)); gap:8px; align-items:end; }
+    form .wide { grid-column: span 2; }
+    form .full { grid-column: 1 / -1; }
+    .danger { color:#b91c1c; cursor:pointer; }
+    .pill { padding:2px 8px; border-radius:999px; border:1px solid #e5e7eb; font-size:12px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -43,6 +49,90 @@
     </div>
   </div>
 
+  <div class="row" style="margin-top:24px">
+    <div class="card">
+      <h3>Add Asset</h3>
+      <form id="assetForm">
+        <div>
+          <label>Symbol</label><br/>
+          <input id="a_symbol" placeholder="BTC / VOD.L / XAG" required />
+        </div>
+        <div>
+          <label>Type</label><br/>
+          <select id="a_type">
+            <option value="crypto">crypto</option>
+            <option value="equity">equity</option>
+            <option value="metal">metal</option>
+            <option value="manual">manual</option>
+          </select>
+        </div>
+        <div>
+          <label>Source</label><br/>
+          <select id="a_source">
+            <option value="coingecko">coingecko</option>
+            <option value="yfinance">yfinance</option>
+            <option value="manual">manual</option>
+          </select>
+        </div>
+        <div class="wide">
+          <label>Source Ref</label><br/>
+          <input id="a_source_ref" placeholder="ethereum / AAPL / XAGUSD=X" />
+        </div>
+        <div>
+          <label>Native CCY (optional)</label><br/>
+          <input id="a_native_ccy" placeholder="USD / GBP / GBX" />
+        </div>
+        <div>
+          <button type="submit">Add Asset</button>
+        </div>
+      </form>
+
+      <div style="margin-top:12px">
+        <strong>Tips:</strong>
+        <span class="pill">Crypto (CoinGecko): <code>source=coingecko</code>, <code>source_ref=ethereum</code></span>
+        <span class="pill">Equity (Yahoo): <code>source=yfinance</code>, <code>source_ref=VOD.L</code>, <code>native_ccy=GBX</code></span>
+        <span class="pill">Silver: <code>type=metal</code>, <code>source=yfinance</code>, <code>source_ref=XAGUSD=X</code></span>
+      </div>
+
+      <h3 style="margin-top:20px">Assets</h3>
+      <table id="assetsTbl">
+        <thead>
+          <tr><th>Symbol</th><th>Type</th><th>Source</th><th>Ref</th><th>Native</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Add Holding</h3>
+      <form id="holdingForm">
+        <div>
+          <label>Asset Symbol</label><br/>
+          <input id="h_symbol" placeholder="BTC / VOD.L / XAG" required />
+        </div>
+        <div>
+          <label>Quantity</label><br/>
+          <input id="h_qty" type="number" step="any" placeholder="e.g. 0.25" required />
+        </div>
+        <div>
+          <label>Account</label><br/>
+          <input id="h_account" placeholder="Default" />
+        </div>
+        <div>
+          <button type="submit">Add Holding</button>
+        </div>
+      </form>
+
+      <h3 style="margin-top:20px">Holdings</h3>
+      <table id="holdingsTbl">
+        <thead>
+          <tr><th>ID</th><th>Account</th><th>Asset ID</th><th>Qty</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="card" style="margin-top:24px">
     <h3>Positions</h3>
     <table id="tbl">
@@ -62,7 +152,7 @@ const fmt = (n, ccy) => new Intl.NumberFormat(undefined, { style:'currency', cur
 
 let pieChart;
 
-async function load(base='GBP') {
+async function loadOverview(base='GBP') {
   document.getElementById('baseCcy').textContent = `(Base: ${base})`;
   const res = await fetch(`/api/overview?base_ccy=${encodeURIComponent(base)}`);
   if (!res.ok) { alert('API error'); return; }
@@ -98,11 +188,119 @@ async function load(base='GBP') {
   });
 }
 
-document.getElementById('refreshBtn').onclick = () => load(document.getElementById('ccySelect').value);
-document.getElementById('ccySelect').onchange = () => load(document.getElementById('ccySelect').value);
+async function loadAssets() {
+  const res = await fetch('/api/assets');
+  const rows = await res.json();
+  const tbody = document.querySelector('#assetsTbl tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.symbol}</td>
+      <td>${r.type}</td>
+      <td>${r.source}</td>
+      <td>${r.source_ref ?? ''}</td>
+      <td>${r.native_ccy ?? ''}</td>
+      <td><span class="danger" data-del-asset="${r.symbol}">delete</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function loadHoldings() {
+  const res = await fetch('/api/holdings');
+  const rows = await res.json();
+  const tbody = document.querySelector('#holdingsTbl tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.id}</td>
+      <td>${r.account}</td>
+      <td>${r.asset_id}</td>
+      <td>${r.qty}</td>
+      <td><span class="danger" data-del-holding="${r.id}">delete</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('refreshBtn').onclick = () => {
+  const base = document.getElementById('ccySelect').value;
+  loadOverview(base);
+  loadAssets();
+  loadHoldings();
+};
+
+document.getElementById('ccySelect').onchange = () => {
+  const base = document.getElementById('ccySelect').value;
+  loadOverview(base);
+};
+
+// Add Asset
+document.getElementById('assetForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    symbol: document.getElementById('a_symbol').value.trim(),
+    type: document.getElementById('a_type').value,
+    source: document.getElementById('a_source').value,
+    source_ref: document.getElementById('a_source_ref').value.trim(),
+    native_ccy: document.getElementById('a_native_ccy').value.trim() || null,
+  };
+  const res = await fetch('/api/assets', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) return alert('Failed to add asset');
+  await loadAssets();
+});
+
+// Add Holding
+document.getElementById('holdingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    asset_symbol: document.getElementById('h_symbol').value.trim(),
+    qty: parseFloat(document.getElementById('h_qty').value),
+    account: document.getElementById('h_account').value.trim() || 'Default',
+  };
+  const res = await fetch('/api/holdings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) return alert('Failed to add holding');
+  await loadHoldings();
+  // Also refresh overview
+  const base = document.getElementById('ccySelect').value;
+  loadOverview(base);
+});
+
+// Delegated delete clicks
+document.body.addEventListener('click', async (e) => {
+  const a = e.target.getAttribute('data-del-asset');
+  if (a) {
+    if (!confirm(`Delete asset '${a}' (and its holdings)?`)) return;
+    const res = await fetch(`/api/assets/${encodeURIComponent(a)}`, { method: 'DELETE' });
+    if (!res.ok) return alert('Delete failed');
+    await loadAssets();
+    await loadHoldings();
+    const base = document.getElementById('ccySelect').value;
+    loadOverview(base);
+  }
+  const h = e.target.getAttribute('data-del-holding');
+  if (h) {
+    if (!confirm(`Delete holding id ${h}?`)) return;
+    const res = await fetch(`/api/holdings/${encodeURIComponent(h)}`, { method: 'DELETE' });
+    if (!res.ok) return alert('Delete failed');
+    await loadHoldings();
+    const base = document.getElementById('ccySelect').value;
+    loadOverview(base);
+  }
+});
 
 // initial
-load('GBP');
+loadOverview('GBP');
+loadAssets();
+loadHoldings();
 </script>
 </body>
 </html>
