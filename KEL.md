@@ -55,3 +55,15 @@ This log tracks defects we know about, current status, and workarounds.
 **Status:** Planned.  
 **Workaround:** Use Swagger `/docs` for manual calls.
 
+---
+
+## KE-7 — Multi-user support & authentication
+**Description:** Add a `User` model, JWT cookie auth (register/login/logout), and link `Holding` rows to `user_id`. Assets/prices remain global.
+**Benefits:** Multiple family members can use the app privately on the same server. Foundation for permissions/sharing later.
+**Acceptance criteria:**
+- [ ] Users can register, login, and logout
+- [ ] Holdings are filtered by the logged-in user
+- [ ] Overview reflects only current user’s holdings
+- [ ] Protected routes reject unauthenticated requests
+- [ ] Demo user seeded in dev (`demo@local` / `demo123`)
+**Notes:** Set `SECRET_KEY` in `.env` and use HttpOnly cookie; set `COOKIE_SECURE=true` when behind HTTPS.
