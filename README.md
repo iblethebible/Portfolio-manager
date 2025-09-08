@@ -25,27 +25,16 @@ Here’s a screenshot of the dashboard:
 
 ---
 
+
 ## 🧩 Project Structure
 
-The app is **compartmentalised** into layers:
+The app is compartmentalised into layers:
 
-+---------------------+ +------------------+
-| Frontend (UI) | <-> | FastAPI API |
-| React/Svelte (WIP) | | /overview etc. |
-+---------------------+ +------------------+
-|
-v
-+------------------+
-| Core Logic |
-| Price fetchers |
-| P&L calculations|
-+------------------+
-|
-v
-+------------------+
-| Database |
-| SQLite/MySQL |
-+------------------+
+```mermaid
+flowchart TD
+    A[Frontend (UI)\nReact/Svelte (WIP)] <--> B[FastAPI API\n/overview etc.]
+    B --> C[Core Logic\nPrice fetchers\nP&L calculations]
+    C --> D[Database\nSQLite / MySQL]
 
 
 - **Core logic**: independent Python code for fetching prices, storing transactions, calculating P&L.  
@@ -64,12 +53,4 @@ git clone https://github.com/iblethebible/portfolio-manager.git
 cd portfolio-manager
 
 
-## 🧩 Project Structure
 
-The app is compartmentalised into layers:
-
-```mermaid
-flowchart TD
-    A[Frontend (UI)\nReact/Svelte (WIP)] <--> B[FastAPI API\n/overview etc.]
-    B --> C[Core Logic\nPrice fetchers\nP&L calculations]
-    C --> D[Database\nSQLite / MySQL]
