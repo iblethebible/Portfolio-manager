@@ -21,3 +21,37 @@ Built with **Python + FastAPI**, with plans for a simple web UI and CLI support.
 
 The app is **compartmentalised** into layers:
 
++---------------------+ +------------------+
+| Frontend (UI) | <----> | FastAPI API |
+| React/Svelte (WIP) | | /overview etc. |
++---------------------+ +------------------+
+|
+v
++------------------+
+| Core Logic |
+| Price fetchers |
+| P&L calculations |
++------------------+
+|
+v
++------------------+
+| Database |
+| SQLite (default) |
+| MySQL/Postgres |
++------------------+
+
+
+- **Core logic**: independent Python code for fetching prices, storing transactions, calculating P&L.  
+- **Backend API**: FastAPI exposing REST endpoints (`/overview`, `/transactions`, `/prices`).  
+- **Frontend**: Web UI for dashboards and charts (to be built).  
+- **CLI Tool**: optional, for terminal users.  
+- **DevOps**: Docker Compose for easy setup, GitHub Actions for CI.  
+
+---
+
+## 🚀 Quick Start
+
+Clone the repo:
+```bash
+git clone https://github.com/iblethebible/portfolio-manager.git
+cd portfolio-manager
