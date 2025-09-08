@@ -17,33 +17,31 @@ Built with **Python + FastAPI**, with plans for a simple web UI and CLI support.
 
 ---
 
-## 🖼 Preview
-
-Here’s a screenshot of the dashboard:
-
-![Portfolio Dashboard](docs/screenshot-portfolio.jpg)
-
----
-
-
 ## 🧩 Project Structure
 
-The app is compartmentalised into layers:
+The app is **compartmentalised** into layers:
 
-```mermaid
-flowchart TD
-    A[Frontend (UI)\nReact/Svelte (WIP)] <--> B[FastAPI API\n/overview etc.]
-    B --> C[Core Logic\nPrice fetchers\nP&L calculations]
-    C --> D[Database\nSQLite / MySQL]
+```
++---------------------+       +------------------+
+|     Frontend (UI)   | <-->  |    FastAPI API   |
+| React/Svelte (WIP)  |       |   /overview etc. |
++---------------------+       +------------------+
+              |
+              v
+       +------------------+
+       |    Core Logic    |
+       |  Price fetchers  |
+       | P&L calculations |
+       +------------------+
+              |
+              v
+       +------------------+
+       |    Database      |
+       | SQLite (default) |
+       | MySQL/Postgres   |
+       +------------------+
+```
 
-
-- **Core logic**: independent Python code for fetching prices, storing transactions, calculating P&L.  
-- **Backend API**: FastAPI exposing REST endpoints (`/overview`, `/transactions`, `/prices`).  
-- **Frontend**: Web UI for dashboards and charts (to be built).  
-- **CLI Tool**: optional, for terminal users.  
-- **DevOps**: Docker Compose for easy setup, GitHub Actions for CI.  
-
----
 
 ## 🚀 Quick Start
 
@@ -53,4 +51,15 @@ git clone https://github.com/iblethebible/portfolio-manager.git
 cd portfolio-manager
 
 
+## Setup
+1. Copy `.env.example` to `.env`
+2. Update values if needed (DB password, currency, poll interval)
+3. Run `uvicorn app.main:app --reload`
 
+
+## Project Board & Logs
+
+- **Known Errors Log:** see [`KEL.md`](./KEL.md)
+- **Backlog / Roadmap:** see [`BACKLOG.md`](./BACKLOG.md)
+
+> Tip: We mirror KEL items as GitHub Issues so they’re visible on the repo and can be tracked in a Project board.
