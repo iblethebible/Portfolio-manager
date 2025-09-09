@@ -12,14 +12,6 @@ from .db import engine
 
 app = FastAPI(title="Open Portfolio Manager", version="0.5.0 (multi-user)")
 
-# (Optional) If you later host a separate front-end, enable CORS:
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
 
 # API under /api
 app.include_router(api_router)
