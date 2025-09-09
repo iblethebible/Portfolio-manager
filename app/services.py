@@ -1,3 +1,6 @@
+import time
+import threading
+from typing import Dict
 import requests
 import yfinance as yf
 
@@ -37,6 +40,65 @@ def fx_rate(base: str, quote: str) -> float:
 # CoinGecko (crypto)
 # -----------------------------
 
+# -----------------------------
+# CoinGecko symbol/name -> id resolver (24h cached)
+# -----------------------------
+_CG_SYM_TO_ID: Dict[str, str] | None = None   # 'ETH'   -> 'ethereum'
+_CG_NAME_TO_ID: Dict[str, str] | None = None  # 'ethereum' (name lower) -> 'ethereum' (id)
+_CG_INDEX_EXPIRES_AT: float = 0.0
+_CG_INDEX_TTL_SEC = 24 * 60 * 60
+_CG_LOCK = threading.Lock()
+
+def _refresh_cg_index_if_needed() -> None:
+    """Cache CoinGecko coin list for symbol/name lookups."""
+    global _CG_SYM_TO_ID, _CG_NAME_TO_ID, _CG_INDEX_EXPIRES_AT
+    now = time.time()
+    with _CG_LOCK:
+        if _CG_SYM_TO_ID is not None and now < _CG_INDEX_EXPIRES_AT:
+            return
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/coins/list",
+            params={"include_platform": "false"},
+            timeout=25,
+            headers={"Accept": "application/json"},
+        )
+        r.raise_for_status()
+        coins = r.json()  # [{id,symbol,name}, ...]
+        sym_map, name_map = {}, {}
+        for c in coins:
+            cid  = (c.get("id") or "").lower()
+            sym  = (c.get("symbol") or "").upper()
+            name = (c.get("name") or "").lower()
+            if cid:
+                if sym and sym not in sym_map:
+                    sym_map[sym] = cid
+                if name and name not in name_map:
+                    name_map[name] = cid
+        _CG_SYM_TO_ID, _CG_NAME_TO_ID = sym_map, name_map
+        _CG_INDEX_EXPIRES_AT = now + _CG_INDEX_TTL_SEC
+
+def _cg_normalize_id(symbol_or_id_or_name: str) -> str:
+    """
+    Accepts 'ETH', 'Ethereum', or 'ethereum' and returns a CoinGecko id ('ethereum').
+    """
+    s = (symbol_or_id_or_name or "").strip()
+    if not s:
+        raise ValueError("Empty crypto identifier")
+    # If already looks like an id (lowercase, no spaces), accept directly
+    if s.lower() == s and " " not in s:
+        return s.lower()
+    _refresh_cg_index_if_needed()
+    # Try symbol (ETH)
+    sym = s.upper()
+    if _CG_SYM_TO_ID and sym in _CG_SYM_TO_ID:
+        return _CG_SYM_TO_ID[sym]
+    # Try human name (Ethereum)
+    name = s.lower()
+    if _CG_NAME_TO_ID and name in _CG_NAME_TO_ID:
+        return _CG_NAME_TO_ID[name]
+    raise ValueError(f"Unknown crypto symbol/name/id: {symbol_or_id_or_name}")
+
+
 def _coingecko_simple(ids: list[str], vs: str) -> dict:
     url = "https://api.coingecko.com/api/v3/simple/price"
     r = requests.get(url, params={"ids": ",".join(ids), "vs_currencies": vs.lower()}, timeout=15)
@@ -44,10 +106,14 @@ def _coingecko_simple(ids: list[str], vs: str) -> dict:
     return r.json()
 
 def fetch_crypto_price_by_id(cg_id: str, target_ccy: str) -> tuple[float, str]:
-    """Return (price_in_target_ccy, source) for a CoinGecko id."""
-    data = _coingecko_simple([cg_id], target_ccy)
-    px = data[cg_id][target_ccy.lower()]
-    return float(px), f"coingecko({cg_id}->{target_ccy.upper()})"
+    """Accepts symbol (ETH), name (Ethereum), or id (ethereum). Returns (price, source)."""
+    normalized = _cg_normalize_id(cg_id)
+    data = _coingecko_simple([normalized], target_ccy)
+    px = data.get(normalized, {}).get(target_ccy.lower())
+    if px is None:
+        raise RuntimeError(f"Price unavailable for '{cg_id}' (resolved '{normalized}') in {target_ccy}")
+    return float(px), f"coingecko({normalized}->{target_ccy.upper()})"
+
 
 # -----------------------------
 # yfinance helpers (metals/equities)
